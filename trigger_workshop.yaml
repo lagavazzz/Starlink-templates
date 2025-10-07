@@ -533,23 +533,8 @@ zabbix_export:
             - tag: component
               value: memory
       macros:
-        - macro: '{$HIGH.CPU.LOAD}'
-          value: '2'
-          description: 'CPU load limit'
-        - macro: '{$HIGH.IN.TRAFFIC}'
-          value: 30M
-          description: 'Potential LLDDOS'
         - macro: '{$LOCATION}'
           value: Summit
-        - macro: '{$LOW.CPU.LOAD}'
-          value: '1'
-          description: 'Normal CPU load'
-        - macro: '{$MIN.FREE.SPACE}'
-          value: 20G
-          description: 'Free space limit'
-        - macro: '{$OK.FREE.SPACE}'
-          value: 25G
-          description: 'Acceptable free space'
         - macro: '{$VALUE}'
           value: '2025'
       dashboards:
