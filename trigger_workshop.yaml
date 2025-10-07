@@ -417,7 +417,7 @@ zabbix_export:
         - uuid: 27824fc7989044a6bff44d2b9839918f
           name: 'Disk space free on "/"'
           key: 'vfs.fs.size["/",free]'
-          delay: 30s
+          delay: 20s
           units: B
           preprocessing:
             - type: JAVASCRIPT
