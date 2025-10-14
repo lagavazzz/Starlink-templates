@@ -1,0 +1,262 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 36bff6c29af64692839d077febfc7079
+      name: 'Templates/Network devices'
+  templates:
+    - uuid: c62fcecf3add4282b8fe20eaf467aa71
+      template: 'Starlink browser monitoring template'
+      name: 'Starlink browser monitoring template'
+      groups:
+        - name: 'Templates/Network devices'
+      items:
+        - uuid: 6c2a9d8555af407b94576b827aafcffa
+          name: 'Get starlink dish data'
+          type: BROWSER
+          key: starlink.dish
+          delay: 3m
+          value_type: TEXT
+          params: |
+            var browser, result;
+            var opts = Browser.chromeOptions();
+            
+            opts.capabilities.alwaysMatch['goog:chromeOptions'].args = [];
+            browser = new Browser(opts);
+            browser.setScreenSize(Number(1980), Number(1020));
+            
+            try {
+                var params = JSON.parse(value);
+                browser.navigate(params.url);
+            
+                Zabbix.sleep(2000);
+            
+                // Find the JSON text element(s)
+                var jsonElements = browser.findElements("xpath", "//div[@id='root']/div[@class='App']/div[@class='Main']/div[2]/div[@class='Section'][2]/pre[@class='Json-Format']/div[@class='Json-Text']");
+                var extractedData = [];
+            
+                for (var i = 0; i < jsonElements.length; i++) {
+                    var text = jsonElements[i].getText();
+            
+                    // Try parsing JSON safely
+                    try {
+                        extractedData.push(JSON.parse(text));
+                    } catch (e) {
+                        // If not valid JSON, include raw text instead
+                        extractedData.push({ raw: text, error: "Invalid JSON format" });
+                    }
+                }
+            
+                // Collect result info
+                result = browser.getResult();
+            
+                // Replace with clean parsed JSON data
+                result.extractedJsonData = extractedData.length === 1 ? extractedData[0] : extractedData;
+            
+            }
+            catch (err) {
+                if (!(err instanceof BrowserError)) {
+                    browser.setError(err.message);
+                }
+                result = browser.getResult();
+            }
+            finally {
+                // Return a clean JSON object
+                return JSON.stringify(result.extractedJsonData);
+            }
+          parameters:
+            - name: url
+              value: '{$LINK}'
+        - uuid: 95d0b6018a384ad7b45897b2a443ff69
+          name: 'Starlink dish disablement code'
+          type: DEPENDENT
+          key: starlink.dish.disablementCode
+          trends: '0'
+          description: 'Starlink dish error code'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.disablementCode
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  // Normalize input (remove spaces and newlines)
+                  var value = value.trim();
+                  
+                  // Mapping table
+                  var map = {
+                      "UNKNOWN": 0,
+                      "OKAY": 1,
+                      "NOACTIVEACCOUNT": 2,
+                      "TOOFROMSERVICEADDRESS": 3,
+                      "INOCEAN": 4,
+                      "BLOCKEDCOUNTRY": 6,
+                      "DATAOVERAGESANDBOXPOLICY": 7,
+                      "CELLISDISABLED": 8,
+                      "ROAMRESTRICTED": 10,
+                      "UNKNOWNLOCATION": 11,
+                      "ACCOUNTDISABLED": 12,
+                      "UNSUPPORTEDVERSION": 13,
+                      "MOVINGTOOFASTFORPOLICY": 14,
+                      "UNDERAVIATIONFLYOVERLIMITS": 15,
+                      "BLOCKEDAREA": 16
+                  };
+                  
+                  // Clean up the incoming value
+                  value = value.replace(/DishGetDiagnosticsResponse/g, "").replace(/_/g, "").trim();
+                  
+                  // Return the mapped value, or 0 if unknown
+                  return map[value] !== undefined ? map[value] : 0;
+          master_item:
+            key: starlink.dish
+        - uuid: ad8d6a5343c2461982cb97a516f4cdb2
+          name: 'Starlink dish hardware version'
+          type: DEPENDENT
+          key: starlink.dish.hardware.version
+          value_type: CHAR
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.hardwareVersion
+          master_item:
+            key: starlink.dish
+        - uuid: 2c3b5c1e54774ef59323b7b9efc00254
+          name: 'Starlink dish hardware self-test status'
+          type: DEPENDENT
+          key: starlink.dish.hardwareSelfTest
+          trends: '0'
+          description: 'A hardware self-test is a diagnostic process that checks a device''s internal components for errors and confirms proper functioning'
+          valuemap:
+            name: 'Hardware self-test status'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.hardwareSelfTest
+            - type: STR_REPLACE
+              parameters:
+                - PASSED
+                - '1'
+            - type: STR_REPLACE
+              parameters:
+                - FAILED
+                - '0'
+          master_item:
+            key: starlink.dish
+        - uuid: 86fbee26569e4b1d9c3127637aa15a7c
+          name: 'Starlink dish hardware self test code'
+          type: DEPENDENT
+          key: starlink.dish.hardwareSelfTestCodesList
+          trends: '0'
+          description: 'Starlink dish error code'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.hardwareSelfTestCodesList.first()
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: starlink.dish
+        - uuid: 0b64d29d5b47476c9290f719901959e4
+          name: 'Starlink dish ID'
+          type: DEPENDENT
+          key: starlink.dish.id
+          value_type: CHAR
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.id
+          master_item:
+            key: starlink.dish
+        - uuid: 70a59c70f0d341ecb439e9f41613ee5b
+          name: 'Starlink dish software version'
+          type: DEPENDENT
+          key: starlink.dish.software.version
+          value_type: CHAR
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.softwareVersion
+          master_item:
+            key: starlink.dish
+        - uuid: 775b251445784ce7b9f7f550b427ac9a
+          name: 'Starlink dish stowed status'
+          type: DEPENDENT
+          key: starlink.dish.stowed
+          trends: '0'
+          valuemap:
+            name: 'Alert status'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.stowed
+            - type: BOOL_TO_DECIMAL
+          master_item:
+            key: starlink.dish
+        - uuid: 645cb5a4cb3b41a4aa09cd1c1eab8c5c
+          name: 'Starlink dish UTC offset'
+          type: DEPENDENT
+          key: starlink.dish.uts.offset
+          value_type: CHAR
+          description: 'A UTC offset is the difference in hours and minutes between a particular time zone and UTC, the time at zero degrees longitude'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.utcOffsetS
+          master_item:
+            key: starlink.dish
+      discovery_rules:
+        - uuid: dd5ac65fde494b54b96ce7bad3001b0c
+          name: 'Starlink dish alert discovery'
+          type: DEPENDENT
+          key: starlink.dish.alert.discovery
+          item_prototypes:
+            - uuid: a541d4c74433478f8bbb23f81e881536
+              name: 'Starlink dish {#ALERT} alert status'
+              type: DEPENDENT
+              key: 'starlink.dish.status[{#ALERT}]'
+              valuemap:
+                name: 'Alert status'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.alerts.{#ALERT}'
+                - type: BOOL_TO_DECIMAL
+              master_item:
+                key: starlink.dish
+          master_item:
+            key: starlink.dish
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var data = JSON.parse(value);
+                  var alerts = data.alerts;
+                  var lld = [];
+                  
+                  for (var key in alerts) {
+                      if (alerts.hasOwnProperty(key)) {
+                          lld.push({
+                              "{#ALERT}": key
+                          });
+                      }
+                  }
+                  
+                  return JSON.stringify({ data: lld });
+      tags:
+        - tag: app
+          value: starlink
+        - tag: component
+          value: dish
+      valuemaps:
+        - uuid: 8a2c7031beef4945943e5c9e519fd714
+          name: 'Alert status'
+          mappings:
+            - value: '0'
+              newvalue: 'False'
+            - value: '1'
+              newvalue: 'True'
+        - uuid: 064721365bbc4a02bd5afdd094245a44
+          name: 'Hardware self-test status'
+          mappings:
+            - value: '1'
+              newvalue: PASSED
+            - value: '0'
+              newvalue: FAILED
