@@ -28,7 +28,7 @@ zabbix_export:
                 var params = JSON.parse(value);
                 browser.navigate(params.url);
             
-                Zabbix.sleep(2000);
+                Zabbix.sleep(3000);
             
                 // Find the JSON text element(s)
                 var jsonElements = browser.findElements("xpath", "//div[@id='root']/div[@class='App']/div[@class='Main']/div[2]/div[@class='Section'][2]/pre[@class='Json-Format']/div[@class='Json-Text']");
@@ -72,6 +72,8 @@ zabbix_export:
           key: starlink.dish.disablementCode
           trends: '0'
           description: 'Starlink dish error code'
+          valuemap:
+            name: 'Disablement code'
           preprocessing:
             - type: JSONPATH
               parameters:
@@ -221,6 +223,13 @@ zabbix_export:
                 - type: BOOL_TO_DECIMAL
               master_item:
                 key: starlink.dish
+              trigger_prototypes:
+                - uuid: 1b3736ffa900481b8a23902b11c92861
+                  expression: 'last(/Starlink browser monitoring template/starlink.dish.status[{#ALERT}])<>0'
+                  name: 'Starlink dish alert {#ALERT}'
+                  event_name: 'Starlink has trigger allert {#ALERT}'
+                  priority: WARNING
+                  manual_close: 'YES'
           master_item:
             key: starlink.dish
           preprocessing:
@@ -245,6 +254,9 @@ zabbix_export:
           value: starlink
         - tag: component
           value: dish
+      macros:
+        - macro: '{$LINK}'
+          value: 'http://webapp.starlink.com'
       valuemaps:
         - uuid: 8a2c7031beef4945943e5c9e519fd714
           name: 'Alert status'
@@ -253,6 +265,39 @@ zabbix_export:
               newvalue: 'False'
             - value: '1'
               newvalue: 'True'
+        - uuid: 04774eebd5ad4caeba454b8b8486cb09
+          name: 'Disablement code'
+          mappings:
+            - value: '0'
+              newvalue: Unknown
+            - value: '1'
+              newvalue: Ok
+            - value: '2'
+              newvalue: 'No active account'
+            - value: '3'
+              newvalue: 'Too far from service address'
+            - value: '4'
+              newvalue: 'In ocean'
+            - value: '6'
+              newvalue: 'Blocked country'
+            - value: '7'
+              newvalue: 'Data over age sandbox policy'
+            - value: '8'
+              newvalue: 'Cell is disabled'
+            - value: '10'
+              newvalue: 'Roam restricted'
+            - value: '11'
+              newvalue: 'Unknown location'
+            - value: '12'
+              newvalue: 'Account disabled'
+            - value: '13'
+              newvalue: 'Unsupported version'
+            - value: '14'
+              newvalue: 'Moving too fast for policy'
+            - value: '15'
+              newvalue: 'Under aviation fly over limits'
+            - value: '16'
+              newvalue: 'Blocked area'
         - uuid: 064721365bbc4a02bd5afdd094245a44
           name: 'Hardware self-test status'
           mappings:
