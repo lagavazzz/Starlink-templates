@@ -32,5 +32,9 @@ WebDriverURL=http://localhost:4444
 StartBrowserPollers=5
 ```
 With the configuration parameters in place, restart the Zabbix server/proxy to apply the changes:
-
+```
 systemctl restart zabbix-server
+```
+
+Detailed step-by-step is available here:
+https://blog.zabbix.com/monitoring-a-starlink-dish-with-zabbix/31543/
